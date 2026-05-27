@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/main.py << 'EOF'
 """
 Roblox Limited Notifier → Telegram
 Corre en Railway 24/7 y te avisa cuando un limited baja de precio.
@@ -13,22 +14,13 @@ from datetime import datetime
 #   CONFIGURACIÓN
 # ══════════════════════════════════════════════════
 
-# El token se lee desde variable de entorno en Railway (más seguro)
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
-print(f"Token cargado: {TELEGRAM_TOKEN[:10]}...")
+TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = "8907365234"
-
-CHECK_INTERVAL = 20  # segundos entre revisiones
+CHECK_INTERVAL   = 20  # segundos entre revisiones
 
 ITEMS = [
-    # Añade o cambia los ítems que quieres vigilar:
-    # El asset_id está en la URL de Roblox:
-    # roblox.com/catalog/XXXXXXX/nombre → ese número es el asset_id
-    #
-    # {"asset_id": 1365767,  "name": "Dominus Empyreus",  "target_price": 5000000},
-    # {"asset_id": 48545806, "name": "Darkheart",         "target_price": 80000},
-    #
-    # EJEMPLO (cámbialo por tus ítems reales):
+    # Cambia estos por los ítems que quieres vigilar:
+    # El asset_id está en la URL: roblox.com/catalog/XXXXXXX/nombre
     {"asset_id": 1365767,  "name": "Dominus Empyreus",  "target_price": 9999999999},
     {"asset_id": 48545806, "name": "Darkheart",         "target_price": 9999999999},
 ]
@@ -43,16 +35,21 @@ last_alert       = {}
 
 
 # ─────────────────────────────────────────
-#  Telegram
+#  Telegram — con logs completos
 # ─────────────────────────────────────────
 
 def tg(method, **kwargs):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/{method}"
     try:
         r = requests.post(url, json=kwargs, timeout=10)
-        return r.json()
+        data = r.json()
+        if not data.get("ok"):
+            print(f"[TG ERROR] {method}: {data}")
+        else:
+            print(f"[TG OK] {method} enviado correctamente")
+        return data
     except Exception as e:
-        print(f"[Telegram error] {e}")
+        print(f"[TG EXCEPTION] {method}: {e}")
         return {}
 
 
@@ -82,18 +79,11 @@ def send_alert(item, current_price, rap):
         ]]
     }
 
-    result = tg(
-        "sendMessage",
-        chat_id=TELEGRAM_CHAT_ID,
-        text=text,
-        parse_mode="HTML",
-        reply_markup=keyboard,
-    )
-
-    if result.get("ok"):
-        print(f"  ✅ Alerta enviada: {name} a {current_price:,} R$")
-    else:
-        print(f"  ⚠ Error Telegram: {result}")
+    tg("sendMessage",
+       chat_id=TELEGRAM_CHAT_ID,
+       text=text,
+       parse_mode="HTML",
+       reply_markup=keyboard)
 
 
 def send_startup():
@@ -136,7 +126,7 @@ def get_price_info(asset_id):
 
         return {"lowest": lowest, "rap": rap}
     except Exception as e:
-        print(f"[ERROR] {asset_id}: {e}")
+        print(f"[ROBLOX ERROR] {asset_id}: {e}")
         return None
 
 
@@ -149,12 +139,13 @@ def main():
     print("  Roblox Limited Notifier → Telegram")
     print("  Corriendo en Railway")
     print("=" * 50)
+    print(f"  Token: {TELEGRAM_TOKEN[:15]}..." if TELEGRAM_TOKEN else "  Token: VACÍO ❌")
     print(f"  Chat ID: {TELEGRAM_CHAT_ID}")
     print(f"  Ítems: {len(ITEMS)}")
     print(f"  Intervalo: {CHECK_INTERVAL}s\n")
 
+    print("  Enviando mensaje de inicio a Telegram...")
     send_startup()
-    print("  ¡Listo! Revisando precios...\n")
 
     cycle = 0
     while True:
@@ -195,3 +186,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+EOF
