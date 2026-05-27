@@ -14,7 +14,8 @@ from datetime import datetime
 # ══════════════════════════════════════════════════
 
 # El token se lee desde variable de entorno en Railway (más seguro)
-TELEGRAM_TOKEN   = os.environ.get("TELEGRAM_TOKEN", "pon_tu_token_aqui")
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+print(f"Token cargado: {TELEGRAM_TOKEN[:10]}...")
 TELEGRAM_CHAT_ID = "8907365234"
 
 CHECK_INTERVAL = 20  # segundos entre revisiones
